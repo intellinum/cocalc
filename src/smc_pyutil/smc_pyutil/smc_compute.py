@@ -656,7 +656,7 @@ spec:
         initialDelaySeconds: 120
         periodSeconds: 60
         timeoutSeconds: 30
-        failureThreshold: 99999
+        failureThreshold: 9999999
       resources:
         limits:
           cpu: "{cores}"
@@ -667,8 +667,6 @@ spec:
       volumeMounts:
         - name: home
           mountPath: /home/user
-  restartPolicy: Never
-  terminationGracePeriodSeconds: 30
   automountServiceAccountToken: false
   volumes:
     - name: home
