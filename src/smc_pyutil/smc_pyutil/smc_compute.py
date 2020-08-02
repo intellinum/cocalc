@@ -667,6 +667,8 @@ spec:
       volumeMounts:
         - name: home
           mountPath: /home/user
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 30
   automountServiceAccountToken: false
   volumes:
     - name: home
