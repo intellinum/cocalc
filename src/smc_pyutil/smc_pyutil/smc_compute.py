@@ -649,10 +649,10 @@ spec:
         httpGet:
           path: /health
           port: 6001 # port number configured in Dockerfile and supervisord.conf
-        initialDelaySeconds: 60
-        periodSeconds: 30
-        timeoutSeconds: 10
-        failureThreshold: 20
+        initialDelaySeconds: 120
+        periodSeconds: 60
+        timeoutSeconds: 30
+        failureThreshold: 99999
       resources:
         limits:
           cpu: "{cores}"
