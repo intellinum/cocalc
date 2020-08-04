@@ -668,6 +668,7 @@ spec:
         - name: home
           mountPath: /home/user
   automountServiceAccountToken: false
+  restartPolicy: Never
   volumes:
     - name: home
       nfs:
