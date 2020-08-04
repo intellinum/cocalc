@@ -662,7 +662,7 @@ spec:
           memory: "{memory}Mi"
         requests:
           cpu: {cpu_shares}m
-          memory: 500Mi
+          memory: "{memory_shares}Mi"
       volumeMounts:
         - name: home
           mountPath: /home/user
@@ -683,6 +683,7 @@ spec:
             cpu_shares=max(
                 50, cpu_shares
             ),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
+            memory=int(memory/3),
             network=network_label,
             node_selector=node_selector,
             extra_env=extra_env)
