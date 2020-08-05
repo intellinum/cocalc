@@ -639,7 +639,7 @@ metadata:
 spec:
   containers:
     - name: "{pod_name}"
-      image: "{registry}/cocalc-kubernetes-project"
+      image: "{registry}/cocalc-kubernetes-project:1.0.1"
       env:
         - name: COCALC_PROJECT_ID
           value: "{project_id}"
@@ -653,9 +653,9 @@ spec:
         httpGet:
           path: /health
           port: 6001 # port number configured in Dockerfile and supervisord.conf
-        initialDelaySeconds: 120
-        periodSeconds: 60
-        timeoutSeconds: 30
+        initialDelaySeconds: 240
+        periodSeconds: 120
+        timeoutSeconds: 120
         failureThreshold: 9999999
       resources:
         limits:
@@ -663,11 +663,12 @@ spec:
           memory: "{memory}Mi"
         requests:
           cpu: {cpu_shares}m
-          memory: 500Mi
+          memory: {memory_requests}Mi
       volumeMounts:
         - name: home
           mountPath: /home/user
   automountServiceAccountToken: false
+  restartPolicy: Never
   volumes:
     - name: home
       nfs:
@@ -680,6 +681,7 @@ spec:
             registry=KUBERNETES_REGISTRY,
             cores=max(1, cores),
             memory=max(1000, memory),
+            memory_requests=int(memory/3),
             cpu_shares=max(
                 50, cpu_shares
             ),  # TODO: this must be less than cores or won't start, but UI doesn't restrict that
