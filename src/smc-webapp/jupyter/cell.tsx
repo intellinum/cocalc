@@ -132,7 +132,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
 
   function click_on_cell(event: any): void {
-    if (props.frame_actions == null) {
+    if (props.frame_actions == null || props.frame_actions.is_closed()) {
       return;
     }
     if (event.shiftKey && !props.is_current) {
@@ -218,7 +218,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       nbgrader == null ||
       (!nbgrader.get("grade") &&
         !nbgrader.get("solution") &&
-        !nbgrader.get("locked"));
+        !nbgrader.get("locked") &&
+        !nbgrader.get("remove"));
     if (no_nbgrader) {
       // Will not need more than two tiny icons.
       // If we add more metadata state indicators

@@ -4,15 +4,10 @@
  */
 
 import { List, Map } from "immutable";
-
-import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
-
+import { Icon, IconName, Space, TimeAgo } from "smc-webapp/r_misc";
 import { server_time } from "../generic/client";
-
 import { Message } from "./types";
-
-import { capitalize, is_different } from "smc-util/misc2";
-
+import { capitalize, is_different } from "smc-util/misc";
 import {
   React,
   Component,
@@ -64,11 +59,10 @@ const ICONS = {
   information: "info-circle",
   error: "exclamation-triangle",
   warning: "exclamation-circle",
-};
+} as { [name: string]: IconName };
 
-export function message_icon(severity: string): string {
-  const icon = ICONS[severity];
-  return icon ? icon : "question-circle";
+export function message_icon(severity: string): IconName {
+  return ICONS[severity] ?? "question-circle";
 }
 
 function render_text(text: string): Rendered {
@@ -192,7 +186,7 @@ class LeanMessages extends Component<Props, {}> {
           marginBottom: "15px",
         }}
       >
-        <Icon name="cc-icon-cocalc-ring" spin />
+        <Icon name="cocalc-ring" spin />
         <Space />
         {capitalize(task.desc)}
         <Space /> (Processing lines {task.pos_line}-{task.end_pos_line})

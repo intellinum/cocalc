@@ -6,7 +6,7 @@
 /*
 We use so little of react-bootstrap in CoCalc that for a first quick round
 of switching to antd, I'm going to see if it isn't easy to re-implement
-much of the same functionality on top of antd.
+much of the same functionality on top of antd
 
 Obviously, this is meant to be temporary, since it is far better if our
 code consistently uses the antd api explicitly.  However, there are
@@ -29,13 +29,22 @@ export {
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
 
-import * as antd from "antd";
+import {
+  Button as AntdButton,
+  Card as AntdCard,
+  Checkbox as AntdCheckbox,
+  Row as AntdRow,
+  Col as AntdCol,
+  Tabs as AntdTabs,
+  Modal as AntdModal,
+  Alert as AntdAlert,
+} from "antd";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
 // way without fundamentally removing information and breaking our UI (e.g., buttons
 // change look after an assignment is sent successfully in a course).
-type ButtonStyle =
+export type ButtonStyle =
   | "primary"
   | "success"
   | "default"
@@ -55,6 +64,8 @@ const BS_STYLE_TO_TYPE: {
   danger: "danger",
   link: "link",
 };
+
+export type ButtonSize = "large" | "small" | "xsmall";
 
 function parse_bsStyle(props: {
   bsStyle?: ButtonStyle;
@@ -115,7 +126,7 @@ function parse_bsStyle(props: {
 
 export function Button(props: {
   bsStyle?: ButtonStyle;
-  bsSize?: "large" | "small" | "xsmall";
+  bsSize?: ButtonSize;
   style?: React.CSSProperties;
   disabled?: boolean;
   onClick?: (e?: any) => void;
@@ -126,6 +137,7 @@ export function Button(props: {
   target?: string;
   title?: string;
   tabIndex?: number;
+  active?: boolean;
   id?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
@@ -139,8 +151,12 @@ export function Button(props: {
   } else if (props.bsSize == "xsmall") {
     size = "small";
   }
+  if (props.active) {
+    style.backgroundColor = "#d4d4d4";
+    style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
+  }
   return (
-    <antd.Button
+    <AntdButton
       onClick={props.onClick}
       type={type}
       disabled={props.disabled}
@@ -156,8 +172,8 @@ export function Button(props: {
       tabIndex={props.tabIndex}
       id={props.id}
     >
-      <span>{props.children}</span>
-    </antd.Button>
+      <>{props.children}</>
+    </AntdButton>
   );
 }
 
@@ -166,7 +182,7 @@ export function ButtonGroup(props: {
   children?: any;
 }) {
   return (
-    <antd.Button.Group style={props.style}>{props.children}</antd.Button.Group>
+    <AntdButton.Group style={props.style}>{props.children}</AntdButton.Group>
   );
 }
 
@@ -209,14 +225,14 @@ export function Well(props: {
     ...props.style,
   };
   return (
-    <antd.Card
+    <AntdCard
       style={style}
       className={props.className}
       onDoubleClick={props.onDoubleClick}
       onMouseDown={props.onMouseDown}
     >
       {props.children}
-    </antd.Card>
+    </AntdCard>
   );
 }
 
@@ -241,7 +257,7 @@ export function Checkbox(props: {
   // has that margin.
   return (
     <div style={{ margin: "10px 0" }}>
-      <antd.Checkbox
+      <AntdCheckbox
         autoFocus={props.autoFocus}
         checked={props.checked}
         disabled={props.disabled}
@@ -249,14 +265,14 @@ export function Checkbox(props: {
         onChange={props.onChange}
       >
         {props.children}
-      </antd.Checkbox>
+      </AntdCheckbox>
     </div>
   );
 }
 
 export function Row(props: any) {
   props = { ...{ gutter: 16 }, ...props };
-  return <antd.Row {...props}>{props.children}</antd.Row>;
+  return <AntdRow {...props}>{props.children}</AntdRow>;
 }
 
 export function Col(props: {
@@ -291,7 +307,7 @@ export function Col(props: {
   for (const p of ["className", "onClick", "style"]) {
     props2[p] = props[p];
   }
-  return <antd.Col {...props2}>{props.children}</antd.Col>;
+  return <AntdCol {...props2}>{props.children}</AntdCol>;
 }
 
 export function Tabs(props: {
@@ -302,28 +318,32 @@ export function Tabs(props: {
   animation?: boolean;
   style?: React.CSSProperties;
   tabBarExtraContent?: React.ReactNode;
+  tabPosition?: "left" | "top" | "right" | "bottom";
+  size?: "small";
   children: any;
 }) {
   // We do this because for antd, "There must be `tab` property on children of Tabs."
   let tabs: Rendered[] | Rendered = [];
   if (Symbol.iterator in Object(props.children)) {
     for (const x of props.children) {
-      if (!x.props) continue;
+      if (x == null || !x.props) continue;
       tabs.push(Tab(x.props));
     }
   } else {
     tabs = Tab(props.children);
   }
   return (
-    <antd.Tabs
+    <AntdTabs
       activeKey={props.activeKey}
       onChange={props.onSelect}
       animated={props.animation ?? false}
       style={props.style}
       tabBarExtraContent={props.tabBarExtraContent}
+      tabPosition={props.tabPosition}
+      size={props.size}
     >
       {tabs}
-    </antd.Tabs>
+    </AntdTabs>
   );
 }
 
@@ -349,9 +369,9 @@ export function Tab(props: {
   const style = { ...{ transition: "0s" }, ...props.style };
 
   return (
-    <antd.Tabs.TabPane key={props.eventKey} tab={title} style={style}>
+    <AntdTabs.TabPane key={props.eventKey} tab={title} style={style}>
       {props.children}
-    </antd.Tabs.TabPane>
+    </AntdTabs.TabPane>
   );
 }
 
@@ -361,9 +381,9 @@ export function Modal(props: {
   children?: any;
 }) {
   return (
-    <antd.Modal visible={props.show} footer={null} closable={false}>
+    <AntdModal visible={props.show} footer={null} closable={false}>
       {props.children}
-    </antd.Modal>
+    </AntdModal>
   );
 }
 
@@ -394,7 +414,7 @@ export function Alert(props: {
     type = "success";
   }
   return (
-    <antd.Alert
+    <AntdAlert
       message={props.children}
       type={type}
       style={props.style}
@@ -411,12 +431,12 @@ export function Panel(props: {
 }) {
   const style = { ...{ marginBottom: "20px" }, ...props.style };
   return (
-    <antd.Card
+    <AntdCard
       style={style}
       title={props.header}
       headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
     >
       {props.children}
-    </antd.Card>
+    </AntdCard>
   );
 }

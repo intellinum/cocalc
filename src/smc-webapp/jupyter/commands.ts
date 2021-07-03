@@ -8,15 +8,12 @@ Comprehensive list of Jupyter notebook (version 5) commands
 we support and how they work.
 */
 
-// still in coffeescript...
-// for now we also use require here (see comment in actions.ts)
-const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
-
 import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
+import { IconName } from "smc-webapp/r_misc";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -33,7 +30,7 @@ export interface KeyboardCommand {
 }
 
 export interface CommandDescription {
-  i?: string; // icon name
+  i?: IconName;
   k?: KeyboardCommand[]; // keyboard commands
   m?: string; // fuller description for use in menus and commands
   menu?: string; // alternative to m just for dropdown menu
@@ -150,7 +147,7 @@ export function commands(
     },
 
     "close and halt": {
-      i: "hand-stop-o",
+      i: "PoweroffOutlined",
       m: "Close and halt",
       f: () => jupyter_actions.confirm_close_and_halt(),
     },
@@ -168,6 +165,12 @@ export function commands(
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
       f: () => jupyter_actions.confirm_restart(),
+    },
+
+    "confirm halt kernel": {
+      m: "Halt kernel...",
+      i: "stop",
+      f: () => jupyter_actions.confirm_halt_kernel(),
     },
 
     "confirm restart kernel and clear output": {
@@ -209,7 +212,7 @@ export function commands(
     },
 
     "copy cell": {
-      i: "files-o",
+      i: "files",
       m: "Copy cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => frame_actions.copy_selected_cells(),
@@ -708,19 +711,10 @@ export function commands(
     },
 
     "show keyboard shortcuts": {
-      i: "keyboard-o",
+      i: "keyboard",
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => jupyter_actions.show_keyboard_shortcuts(),
-    },
-
-    "show code snippets": {
-      i: SNIPPET_ICON_NAME,
-      m: "Show code snippets",
-      f: async () => {
-        await frame_actions.show_code_snippets();
-        frame_actions.scroll("cell visible");
-      },
     },
 
     "show toolbar": {
@@ -753,6 +747,7 @@ export function commands(
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
       m: "Tab key (completion)",
+      i: "tab",
       f: () => frame_actions.tab_key(),
     },
 
@@ -895,11 +890,19 @@ export function commands(
     "toggle hide input": {
       m: "Toggle hide input of cells",
       f: () => frame_actions.toggle_source_hidden(),
+      k: [
+        { alt: true, which: 72 },
+        { meta: true, which: 72 },
+      ],
     },
 
     "toggle hide output": {
       m: "Toggle hide output of cells",
       f: () => frame_actions.toggle_outputs_hidden(),
+      k: [
+        { alt: true, shift: true, which: 72 },
+        { meta: true, shift: true, which: 72 },
+      ],
     },
 
     "format cells": {

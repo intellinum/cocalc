@@ -7,23 +7,15 @@
 The format bar
 */
 
-import { React, Component, Rendered } from "../../app-framework";
-
-import { cmp } from "smc-util/misc2";
-
-import { SetMap } from "./types";
-
 const css_colors = require("css-color-names");
 
-const {
-  ButtonGroup,
-  Button,
-  DropdownButton,
-  MenuItem,
-} = require("react-bootstrap");
-
+import { React, Component, Rendered } from "../../app-framework";
+import { cmp } from "smc-util/misc";
+import { SetMap } from "./types";
+import { DropdownMenu, MenuItem } from "../../r_misc";
+import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
-import { Icon, Space } from "smc-webapp/r_misc";
+import { Icon, isIconName, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
@@ -43,16 +35,17 @@ export class FormatBar extends Component<Props, {}> {
   render_button(
     name: string,
     title: string,
-    label?: string | Rendered // if a string, the named icon; if a rendered
+    label?: string | Rendered, // if a string, the named icon; if a rendered
     // component for the button, show that in the button; if not given, use
     // icon with given name.
+    fontSize?: string
   ): Rendered {
-    if (this.props.exclude && this.props.exclude[name]) {
+    if (this.props.exclude?.[name]) {
       return;
     }
-    if (typeof label === "undefined") {
+    if (label == null && isIconName(name)) {
       label = <Icon name={name} />;
-    } else if (typeof label === "string") {
+    } else if (typeof label === "string" && isIconName(label)) {
       label = <Icon name={label} />;
     }
 
@@ -61,7 +54,7 @@ export class FormatBar extends Component<Props, {}> {
         key={name}
         title={title}
         onClick={() => this.props.actions.format_action(name)}
-        bsSize="small"
+        style={{ maxHeight: "30px", fontSize }}
       >
         {label}
       </Button>
@@ -75,8 +68,17 @@ export class FormatBar extends Component<Props, {}> {
         {this.render_button("italic", "Make selected text italics")}
         {this.render_button("underline", "Underline selected text")}
         {this.render_button("strikethrough", "Strike through selected text")}
-        {this.render_button("subscript", "Make selected text a subscript")}
-        {this.render_button("superscript", "Make selected text a superscript")}
+        {this.render_button("code", "Format selected text as code")}
+        {this.render_button(
+          "sub",
+          "Make selected text a subscript",
+          "subscript"
+        )}
+        {this.render_button(
+          "sup",
+          "Make selected text a superscript",
+          "superscript"
+        )}
         {this.render_button("comment", "Comment out selected text")}
       </ButtonGroup>
     );
@@ -86,14 +88,9 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <ButtonGroup key={"insert"}>
         {this.render_button(
-          "equation",
-          "Insert inline LaTeX math",
-          <span>$</span>
-        )}
-        {this.render_button(
-          "display_equation",
-          "Insert displayed LaTeX math",
-          <span>$$</span>
+          "format_code",
+          "Insert block of source code",
+          "CodeOutlined"
         )}
         {this.render_button(
           "insertunorderedlist",
@@ -104,6 +101,16 @@ export class FormatBar extends Component<Props, {}> {
           "insertorderedlist",
           "Insert ordered list",
           "list-ol"
+        )}
+        {this.render_button(
+          "equation",
+          "Insert inline LaTeX math",
+          <span>$</span>
+        )}
+        {this.render_button(
+          "display_equation",
+          "Insert displayed LaTeX math",
+          <span>$$</span>
         )}
         {this.render_button(
           "quote",
@@ -124,12 +131,12 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <ButtonGroup key={"insert-dialog"}>
         {this.render_button("link", "Insert link", "link")}
-        {this.render_button("image", "Insert image", "image")}
+        {this.render_button("image", "Insert image", "image", "12pt")}
         {this.props.extension !== "tex"
           ? this.render_button(
               "SpecialChar",
               "Insert special character...",
-              <span>&Omega;</span>
+              <span style={{ fontSize: "larger" }}>&Omega;</span>
             )
           : undefined}
       </ButtonGroup>
@@ -137,8 +144,12 @@ export class FormatBar extends Component<Props, {}> {
   }
 
   render_format_buttons(): Rendered {
+    if (this.props.exclude?.["format_buttons"]) {
+      return;
+    }
     return (
       <>
+        <Space />
         <ButtonGroup key={"format"}>
           {this.render_button(
             "format_code",
@@ -182,28 +193,24 @@ export class FormatBar extends Component<Props, {}> {
     const items: Rendered[] = [];
     for (const family of FONT_FACES) {
       const item: Rendered = (
-        <MenuItem
-          key={family}
-          eventKey={family}
-          onSelect={(family) =>
-            this.props.actions.format_action("font_family", family)
-          }
-        >
+        <MenuItem key={family} eventKey={family}>
           <span style={{ fontFamily: family }}>{family}</span>
         </MenuItem>
       );
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"font"} />}
         key={"font-family"}
         id={"font-family"}
-        bsSize="small"
+        onClick={(family) =>
+          this.props.actions.format_action("font_family", family)
+        }
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
@@ -211,13 +218,7 @@ export class FormatBar extends Component<Props, {}> {
     const items: Rendered[] = [];
     for (const size of FONT_SIZES) {
       const item: Rendered = (
-        <MenuItem
-          key={size}
-          eventKey={size}
-          onSelect={(size) =>
-            this.props.actions.format_action("font_size_new", size)
-          }
-        >
+        <MenuItem key={size} eventKey={size}>
           <span style={{ fontSize: size }}>
             {size} {size === "medium" ? "(default)" : undefined}
           </span>
@@ -226,24 +227,29 @@ export class FormatBar extends Component<Props, {}> {
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"text-height"} />}
         key={"font-size"}
         id={"font-size"}
-        bsSize="small"
+        onClick={(size) =>
+          this.props.actions.format_action("font_size_new", size)
+        }
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
   render_heading_dropdown(): Rendered {
     const items: Rendered[] = [];
-    for (let heading = 1; heading <= 6; heading++) {
+    for (let heading = 0; heading <= 6; heading++) {
       var c;
-      const label = `Heading ${heading}`;
+      const label = heading == 0 ? "Paragraph" : `Heading ${heading}`;
       switch (heading) {
+        case 0:
+          c = <span>{label}</span>;
+          break;
         case 1:
           c = <h1>{label}</h1>;
           break;
@@ -264,28 +270,24 @@ export class FormatBar extends Component<Props, {}> {
           break;
       }
       const item = (
-        <MenuItem
-          key={heading}
-          eventKey={heading}
-          onSelect={(heading) =>
-            this.props.actions.format_action(`format_heading_${heading}`)
-          }
-        >
+        <MenuItem key={heading} eventKey={heading}>
           {c}
         </MenuItem>
       );
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
+      <DropdownMenu
+        button={true}
         title={<Icon name={"header"} />}
         key={"heading"}
         id={"heading"}
-        bsSize="small"
+        onClick={(heading) =>
+          this.props.actions.format_action(`format_heading_${heading}`)
+        }
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
@@ -305,11 +307,7 @@ export class FormatBar extends Component<Props, {}> {
       color = x[0];
       code = x[1];
       const item = (
-        <MenuItem
-          key={color}
-          eventKey={code}
-          onSelect={(code) => this.props.actions.format_action("color", code)}
-        >
+        <MenuItem key={color} eventKey={code}>
           <span style={{ background: code }}>
             <Space />
             <Space />
@@ -322,21 +320,20 @@ export class FormatBar extends Component<Props, {}> {
       items.push(item);
     }
     return (
-      <DropdownButton
-        pullRight
-        title={<Icon name={"paint-brush"} />}
+      <DropdownMenu
+        button={true}
+        title={<Icon name={"colors"} />}
         key={"font-color"}
         id={"font-color"}
-        bsSize="small"
+        onClick={(code) => this.props.actions.format_action("color", code)}
       >
         {items}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
   render_font_dropdowns(): Rendered {
-    if (this.props.extension === "tex") {
-      // these are mostly not implemented for latex... yet! (except heading, sort of).
+    if (this.props.exclude?.["font_dropdowns"]) {
       return;
     }
     return (
@@ -362,7 +359,6 @@ export class FormatBar extends Component<Props, {}> {
           {this.render_insert_buttons()}
           <Space />
           {this.render_insert_dialog_buttons()}
-          <Space />
           {this.render_format_buttons()}
           <Space />
         </div>

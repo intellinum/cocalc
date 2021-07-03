@@ -4,9 +4,10 @@
  */
 
 import { join as path_join } from "path";
-import { COLORS } from "../r_misc";
+import { COLORS } from "smc-util/theme";
+import { IconName } from "smc-webapp/r_misc/icon";
 
-export const RESET_ICON = "redo-alt";
+export const RESET_ICON: IconName = "redo";
 
 // Do NOT change this:
 export type NAME_TYPE = "compute_images";
@@ -57,4 +58,8 @@ export function custom_image_name(id: string): string {
     tag = "latest";
   }
   return path_join(CUSTOM_IMG_PREFIX, id, tag);
+}
+
+export function is_custom_image(img: string): boolean {
+  return img.startsWith(CUSTOM_IMG_PREFIX);
 }

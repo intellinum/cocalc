@@ -21,7 +21,7 @@ for dir in "${CODE_DIRS[@]}"; do
 done
 
 cd $SMC_ROOT
-find -type d -name node_modules.delme | xargs rm -rf &
+find . -type d -name node_modules.delme | xargs rm -rf &
 
 # npm ci install function, will run in parallel if gnu parallel is installed
 run_install() {
@@ -31,6 +31,17 @@ run_install() {
         npm ci | ts "[%Y-%m-%d %H:%M:%S|$(basename $1)]"
     else
         npm ci
+    fi
+}
+
+# npm build function
+run_build() {
+    cd "$1"
+    # ts is part of moreutils
+    if `hash ts 2> /dev/null`; then
+        npm run build | ts "[%Y-%m-%d %H:%M:%S|$(basename $1)]"
+    else
+        npm run build
     fi
 }
 
@@ -47,6 +58,11 @@ else
 
 fi
 
+# Run build on each code directory.
+for dir in "${CODE_DIRS[@]}"; do
+    run_build "$dir"
+done
+
 
 # after everything is installed, we run some extra jobs
 
@@ -62,18 +78,13 @@ assistant() {
 colors() {
     # generating color scheme
     cd $SMC_ROOT
-    nodejs scripts/update-color-scheme.js
+    node scripts/update-color-scheme.js
 }
 
 react_static() {
     # static react pages update must come *before* webpack
     cd $SMC_ROOT
     update_react_static
-}
-
-webapp_res_setup() {
-    cd $SMC_ROOT
-    python3 webapp-lib/resources/setup.py
 }
 
 # run extras in the background

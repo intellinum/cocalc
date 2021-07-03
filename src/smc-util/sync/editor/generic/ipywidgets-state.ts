@@ -5,9 +5,7 @@
 
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
-
-import { delete_null_fields, len } from "../../../misc2";
-
+import { close, delete_null_fields, len } from "../../../misc";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { Client } from "./types";
@@ -116,7 +114,7 @@ export class IpywidgetsState extends EventEmitter {
       return undefined;
     }
     const state_js = state.toJS();
-    let value = this.get(model_id, "value");
+    let value : any = this.get(model_id, "value");
     if (value != null) {
       value = value.toJS();
       if (value == null) {
@@ -131,7 +129,7 @@ export class IpywidgetsState extends EventEmitter {
 
   public get_model_value(model_id: string): Value {
     this.assert_state("ready");
-    let value = this.get(model_id, "value");
+    let value : any = this.get(model_id, "value");
     if (value == null) {
       return {};
     }
@@ -232,8 +230,8 @@ export class IpywidgetsState extends EventEmitter {
   public async close(): Promise<void> {
     if (this.table != null) {
       await this.table.close();
-      delete this.table;
     }
+    close(this);
     this.set_state("closed");
   }
 

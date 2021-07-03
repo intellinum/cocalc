@@ -6,11 +6,7 @@
 import { CompressedPatch, Document } from "../generic/types";
 import * as immutable from "immutable";
 import { isEqual } from "underscore";
-
-import { is_array, is_object, copy_without } from "../../../misc";
-
-import { len } from "../../../misc2";
-
+import { is_array, is_object, copy_without, len } from "../../../misc";
 import {
   make_patch as string_make_patch,
   apply_patch as string_apply_patch,
@@ -468,7 +464,7 @@ export class DBDocument implements Document {
     } else {
       // The sparse array matches had nothing in it, so
       // append a new record.
-      for (const field in this.string_cols) {
+      for (const field of this.string_cols) {
         if (obj[field] != null && is_array(obj[field])) {
           // It's a patch -- but there is nothing to patch,
           // so discard this field
@@ -568,7 +564,8 @@ export class DBDocument implements Document {
           return;
         }
         const k = to_key(val);
-        const matches = index.get(k).delete(n);
+        const matches = index?.get(k)?.delete(n);
+        if (matches == null || index == null) return; // shouldn't happen
         if (matches.size === 0) {
           index = index.delete(k);
         } else {
@@ -626,7 +623,9 @@ export class DBDocument implements Document {
     if (matches == null) {
       return;
     }
-    return this.records.get(matches.min());
+    const min = matches.min();
+    if (min == null) return;
+    return this.records.get(min);
   }
 
   // x = javascript object

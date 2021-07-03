@@ -3,18 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered } from "../app-framework";
+import * as React from "react";
 
-let BASE_URL;
-if (global["BACKEND"]) {
-  // set in ./render.coffee
-  BASE_URL = require("smc-util/theme").DOMAIN_NAME;
-} else {
-  // browser
-  ({ BASE_URL } = require("../misc_page"));
-}
+// smc-util/theme is set in ./render.coffee
 
+import { DOMAIN_NAME } from "smc-util/theme";
+import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
+import { IconName } from "smc-webapp/r_misc/icon";
+
+const BASE_URL = global["BACKEND"] ? DOMAIN_NAME : DEFAULT_BASE_URL;
 
 import {
   HELP_EMAIL,
@@ -27,10 +25,10 @@ import {
 interface LinkInfo {
   commercial?: boolean;
   bold?: boolean;
-  icon: string;
+  icon: IconName;
   href?: string;
-  link?: Rendered | string;
-  text?: Rendered | string;
+  link?: JSX.Element | string;
+  text?: JSX.Element | string;
 }
 
 export type Links = { [name: string]: LinkInfo };
@@ -66,7 +64,7 @@ export const SUPPORT_LINKS: Links = {
   },
   live_demo: {
     commercial: true,
-    icon: "comments-o",
+    icon: "comment",
     link: (
       <span>
         Request a live video chat with the <SiteName /> developers about how to
@@ -85,40 +83,44 @@ export const SUPPORT_LINKS: Links = {
   cocalc_api: {
     icon: "gears",
     href: "https://doc.cocalc.com/api/",
+    link: <span>Embed and control CoCalc using the API</span>,
+  },
+  desktop: {
+    commercial: true,
+    icon: "desktop",
+    href: "https://github.com/sagemathinc/cocalc-desktop#readme",
     link: (
-      <span>
-        Embed and control <SiteName /> using a powerful API
-      </span>
+      <span>Install the CoCalc desktop application for Windows and MacOS</span>
     ),
   },
   docker_image: {
     commercial: true,
     icon: "window-maximize",
-    href: "https://github.com/sagemathinc/cocalc-docker",
+    href: "https://github.com/sagemathinc/cocalc-docker#readme",
     link: (
       <span>
-        Run open source CoCalc on your computer ($799 commercial license)
+        Easily run your own CoCalc server (commercial support available)
       </span>
     ),
   },
   kubernetes_image: {
     commercial: true,
     icon: "window-maximize",
-    href: "https://github.com/sagemathinc/cocalc-kubernetes",
+    href: "https://github.com/sagemathinc/cocalc-kubernetes#readme",
     link: (
       <span>
-        Run open source CoCalc on your Kubernetes cluster ($1499 commercial
-        license)
+        Deploy a CoCalc server on your Kubernetes cluster (commercial support
+        available)
       </span>
     ),
   },
 };
 
-export const CONNECT_LINKS = {
+export const CONNECT_LINKS : Links = {
   discord: {
     commercial: true,
     bold: true,
-    icon: "fab fa-discord",
+    icon: "discord",
     href: DISCORD_INVITE,
     link: (
       <span>
@@ -137,22 +139,22 @@ export const CONNECT_LINKS = {
     link: <span>Mailing list</span>,
   },
   sagemath_blog: {
-    icon: "rss",
+    icon: "blog",
     href: "http://blog.sagemath.com/",
     link: "News and updates on our blog",
   },
   twitter: {
-    icon: "twitter-square",
+    icon: "twitter",
     href: `https://twitter.com/${TWITTER_HANDLE}`,
     link: `Follow @${TWITTER_HANDLE} on twitter`,
   },
   facebook: {
-    icon: "facebook-square",
+    icon: "facebook",
     href: "https://www.facebook.com/CoCalcOnline/",
     link: "Like our facebook page",
   },
   github: {
-    icon: "github-square",
+    icon: "github",
     href: "https://github.com/sagemathinc/cocalc",
     link: "GitHub",
     text: (
@@ -185,21 +187,21 @@ export const CONNECT_LINKS = {
   },
 };
 
-export const THIRD_PARTY = {
+export const THIRD_PARTY : Links = {
   sagemath: {
-    icon: "cc-icon-sagemath",
+    icon: "sagemath",
     href: "http://www.sagemath.org/",
     link: "SageMath",
     text: <span>open-source mathematical software</span>,
   },
   r: {
-    icon: "cc-icon-r",
+    icon: "r",
     href: "https://cran.r-project.org/doc/manuals/r-release/R-intro.html",
     link: "R project",
     text: "the #1 open-source statistics software",
   },
   python: {
-    icon: "cc-icon-python",
+    icon: "python",
     href: "http://www.scipy-lectures.org/",
     link: "Scientific Python",
     text: (
@@ -245,25 +247,25 @@ export const THIRD_PARTY = {
     ),
   },
   julia: {
-    icon: "cc-icon-julia",
+    icon: "julia",
     href: "https://www.julialang.org/",
     link: "Julia",
     text: "programming language for numerical computing",
   },
   octave: {
-    icon: "cc-icon-octave",
+    icon: "octave",
     href: "https://www.gnu.org/software/octave/",
     link: "GNU Octave",
     text: "scientific programming language, largely compatible with MATLAB",
   },
   tensorflow: {
-    icon: "lightbulb-o",
+    icon: "lightbulb",
     href: "https://www.tensorflow.org/get_started/get_started",
     link: "Tensorflow",
     text: "open-source software library for machine intelligence",
   },
   latex: {
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     href: "https://en.wikibooks.org/wiki/LaTeX",
     link: "LaTeX",
     text: "high-quality typesetting program",
@@ -276,14 +278,14 @@ export const THIRD_PARTY = {
   },
 };
 
-export const ABOUT_LINKS = {
+export const ABOUT_LINKS : Links = {
   legal: {
-    icon: "cc-icon-section",
+    icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
     href: `${BASE_URL}/policies/index.html`,
   },
   developers: {
-    icon: "keyboard-o",
+    icon: "keyboard",
     text: (
       <span>
         <a

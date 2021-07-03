@@ -13,24 +13,33 @@ One you add a new built in editor, it should go here.
 // This should be a comprehensive list of all React editors
 
 import "../chat/register";
-
 import "./archive/actions";
 import "../stopwatch/register";
-
-// public read-only jupyter view (TODO: we are deprecating this, so...)
-import { webapp_client } from "../webapp-client";
-import { register as jupyter_register } from "../jupyter/nbviewer/register";
-jupyter_register(webapp_client);
 
 import "./media-viewer/register";
 
 // Raw data editors
 import "../editor-data/generic";
 
-// All the non-react editors.
-require("../editor").register_nonreact_editors();
-
 import "./task-editor/register";
 
 // All the frame-tree editors
 import "../frame-editors/register";
+
+// The whiteboard
+import "./whiteboard/register";
+
+// Unknown files
+import "./unknown/register";
+
+import { init as init_jupyter } from "smc-webapp/frame-editors/jupyter-editor/register";
+
+// All the non-react editors.
+const { register_nonreact_editors } = require("../editor");
+register_nonreact_editors();
+
+// And configure jupyter and jupyter classic.
+init_jupyter(); // must run after register_nonreact_editors
+
+// Ensure that we load all the codemirror plugins, modes, etc.
+import "smc-webapp/codemirror/init";

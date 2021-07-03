@@ -4,13 +4,9 @@
  */
 
 import { Map } from "immutable";
-
-import { Component, React, Rendered } from "../../app-framework";
-
-import { plural } from "smc-util/misc2";
-
+import { React, Rendered } from "../../app-framework";
+import { plural } from "smc-util/misc";
 import { CELLTYPE_INFO_MAP, state_to_value } from "./cell-types";
-
 import { Tip } from "../../r_misc/tip";
 
 interface Props {
@@ -20,7 +16,9 @@ interface Props {
   output?: Map<string, any>;
 }
 
-export class NBGraderMetadata extends Component<Props> {
+export const NBGraderMetadata: React.FC<Props> = React.memo((props: Props) => {
+  const { nbgrader /*, start, state, output */ } = props;
+
   /*private is_correct(): boolean {
     // use heuristics to try to determine if they have successfully
     // validated their answer based on start, state, output, etc., info.
@@ -30,8 +28,8 @@ export class NBGraderMetadata extends Component<Props> {
     return false;
   }*/
 
-  private render_points(): Rendered {
-    const points = this.props.nbgrader.get("points");
+  function render_points(): Rendered {
+    const points = nbgrader.get("points");
     if (points == null) return;
     return (
       <span style={{ marginLeft: "5px" }}>
@@ -40,27 +38,25 @@ export class NBGraderMetadata extends Component<Props> {
     );
   }
 
-  private render_id(): Rendered {
-    const id = this.props.nbgrader.get("grade_id");
+  function render_id(): Rendered {
+    const id = nbgrader.get("grade_id");
     if (id == null) return;
     return <span>, ID: {id}</span>;
   }
 
-  public render(): Rendered {
-    const nbgrader = this.props.nbgrader.toJS();
-    const value: string = state_to_value(nbgrader);
-    const info = CELLTYPE_INFO_MAP[value];
-    return (
-      <Tip
-        title={info.student_title}
-        tip={info.student_tip}
-        placement={"right"}
-        size={"small"}
-      >
-        <span>{info.student_title}</span>
-        {this.render_points()}
-        {this.render_id()}
-      </Tip>
-    );
-  }
-}
+  const value: string | undefined = state_to_value(nbgrader.toJS());
+  if (value == null) return null;
+  const info = CELLTYPE_INFO_MAP[value];
+  return (
+    <Tip
+      title={info.student_title}
+      tip={info.student_tip}
+      placement={"right"}
+      size={"small"}
+    >
+      <span>{info.student_title}</span>
+      {render_points()}
+      {render_id()}
+    </Tip>
+  );
+});

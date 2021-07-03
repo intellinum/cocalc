@@ -4,7 +4,14 @@
  */
 
 // CoCalc libraries
-import * as misc from "smc-util/misc";
+import {
+  capitalize,
+  cmp,
+  is_different,
+  is_equal,
+  to_json,
+  trunc_middle,
+} from "smc-util/misc";
 
 // React Libraries
 import {
@@ -52,38 +59,38 @@ import {
 // Could also be coded into the components below but steps could be added in the future?
 const STEPS = () => ["handout"];
 
-const step_direction = function (step) {
+function step_direction(step: string): string {
   switch (step) {
     case "handout":
       return "to";
     default:
-      return console.warn(`BUG! step_direction('${step}')`);
+      throw Error(`BUG! step_direction('${step}')`);
   }
-};
+}
 
-const step_verb = function (step) {
+function step_verb(step: string): string {
   switch (step) {
     case "handout":
       return "distribute";
     default:
-      return console.warn(`BUG! step_verb('${step}')`);
+      throw Error(`BUG! step_verb('${step}')`);
   }
-};
+}
 
-const step_ready = function (step) {
+function step_ready(step: string): string | undefined {
   switch (step) {
     case "handout":
       return "";
   }
-};
+}
 
-const past_tense = function (word) {
+function past_tense(word: string): string {
   if (word[word.length - 1] === "e") {
     return word + "d";
   } else {
     return word + "ed";
   }
-};
+}
 
 interface HandoutsPanelReactProps {
   frame_id?: string;
@@ -134,7 +141,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       ) {
         return true;
       }
-      if (!misc.is_equal(nextState, this.state)) {
+      if (!is_equal(nextState, this.state)) {
         return true;
       }
       return false;
@@ -161,10 +168,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       ({ list, deleted, num_deleted } = util.order_list({
         list,
         compare_function: (a, b) =>
-          misc.cmp(
-            a.path != null ? a.path.toLowerCase() : undefined,
-            b.path != null ? b.path.toLowerCase() : undefined
-          ),
+          cmp(a.path?.toLowerCase(), b.path?.toLowerCase()),
         reverse: false,
         include_deleted: this.state.show_deleted,
       }));
@@ -314,7 +318,7 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
       );
 
       return (
-        <div className={"smc-vfill"} style={{ margin: "0 15px" }}>
+        <div className={"smc-vfill"} style={{ margin: "0" }}>
           {header}
           <div style={{ marginTop: "5px" }} />
           {this.render_handouts(shown_handouts)}
@@ -338,7 +342,7 @@ export function HandoutsPanelHeader(props: { n: number }) {
       tip="This tab lists all of the handouts associated with your course."
     >
       <span>
-        <Icon name="files-o" /> Handouts{" "}
+        <Icon name="files" /> Handouts{" "}
         {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
@@ -392,7 +396,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
           {this.props.handout.get("path")}
         </div>
         <Button onClick={this.open_handout_path}>
-          <Icon name="folder-open-o" /> Edit Handout
+          <Icon name="folder-open" /> Edit Handout
         </Button>
       </div>
     );
@@ -578,8 +582,8 @@ class Handout extends Component<HandoutProps, HandoutState> {
         message={
           <div>
             <div style={{ marginBottom: "15px" }}>
-              {misc.capitalize(step_verb(step))} this handout{" "}
-              {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
+              {capitalize(step_verb(step))} this handout {step_direction(step)}{" "}
+              the {n} student{n > 1 ? "s" : ""}
               {step_ready(step)}?
             </div>
             <ButtonGroup>
@@ -650,8 +654,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         message={
           <div>
             <div style={{ marginBottom: "15px" }}>
-              {misc.capitalize(step_verb(step))} this handout{" "}
-              {step_direction(step)}
+              {capitalize(step_verb(step))} this handout {step_direction(step)}
               ...
             </div>
             <ButtonGroup>
@@ -718,12 +721,12 @@ Select "Replace student files!" in case you do not want to create any backups an
           title={
             <span>
               Handout: <Icon name="user-secret" /> You{" "}
-              <Icon name="long-arrow-right" /> <Icon name="users" /> Students{" "}
+              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
             </span>
           }
           tip="Copy the files for this handout from this project to all other student projects."
         >
-          <Icon name="share-square-o" /> Distribute...
+          <Icon name="share-square" /> Distribute...
         </Tip>
       </Button>
     );
@@ -782,7 +785,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             onClick={this.undelete_handout}
             style={this.outside_button_style}
           >
-            <Icon name="trash-o" /> Undelete
+            <Icon name="trash" /> Undelete
           </Button>
         </Tip>
       );
@@ -855,7 +858,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             name={this.props.is_expanded ? "caret-down" : "caret-right"}
           />
           <div>
-            {misc.trunc_middle(this.props.handout.get("path"), 24)}
+            {trunc_middle(this.props.handout.get("path"), 24)}
             {this.props.handout.get("deleted") ? <b> (deleted)</b> : undefined}
           </div>
         </a>
@@ -944,7 +947,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
   private student_list: string[] | undefined = undefined;
 
   public shouldComponentUpdate(props): boolean {
-    const x: boolean = misc.is_different(this.props, props, [
+    const x: boolean = is_different(this.props, props, [
       "handout",
       "students",
       "user_map",
@@ -998,7 +1001,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
       }
     }
 
-    v1.sort((a, b) => misc.cmp(a.sort, b.sort));
+    v1.sort((a, b) => cmp(a.sort, b.sort));
 
     this.student_list = [];
     for (const x of v1) {
@@ -1018,10 +1021,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
         key={student_id}
         actions={this.props.actions}
         info={info}
-        title={misc.trunc_middle(
-          this.get_store().get_student_name(student_id),
-          40
-        )}
+        title={trunc_middle(this.get_store().get_student_name(student_id), 40)}
       />
     );
   }
@@ -1141,7 +1141,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
             return copy();
           }}
         >
-          <Icon name="share-square-o" /> Yes, {name.toLowerCase()} again
+          <Icon name="share-square" /> Yes, {name.toLowerCase()} again
         </Button>
       );
       v.push(
@@ -1161,7 +1161,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
           onClick={() => this.setState({ [key]: true })}
         >
           <Tip title={name} tip={<span>{copy_tip}</span>}>
-            <Icon name="share-square-o" /> {name}...
+            <Icon name="share-square" /> {name}...
           </Tip>
         </Button>
       );
@@ -1174,7 +1174,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
         {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open Directory" tip={open_tip}>
-            <Icon name="folder-open-o" /> Open directory...
+            <Icon name="folder-open" /> Open directory...
           </Tip>
         </Button>
       </ButtonGroup>
@@ -1185,13 +1185,13 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
     return (
       <ButtonGroup key="open_copying">
         <Button key="copy" bsStyle="success" disabled={true}>
-          <Icon name="cc-icon-cocalc-ring" spin /> Working...
+          <Icon name="cocalc-ring" spin /> Working...
         </Button>
         <Button key="stop" bsStyle="danger" onClick={stop}>
           <Icon name="times" />
         </Button>
         <Button key="open" onClick={open}>
-          <Icon name="folder-open-o" /> Open
+          <Icon name="folder-open" /> Open
         </Button>
       </ButtonGroup>
     );
@@ -1201,7 +1201,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
     return (
       <Tip key="copy" title={name} tip={copy_tip}>
         <Button onClick={copy} bsStyle={"primary"}>
-          <Icon name="share-square-o" /> {name}
+          <Icon name="share-square" /> {name}
         </Button>
       </Tip>
     );
@@ -1209,7 +1209,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
 
   render_error(name, error) {
     if (typeof error !== "string") {
-      error = misc.to_json(error);
+      error = to_json(error);
     }
     if (error.indexOf("No such file or directory") !== -1) {
       error = `Somebody may have moved the folder that should have contained the handout.\n${error}`;

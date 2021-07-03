@@ -20,18 +20,20 @@ export type SiteSettingsKeys =
   | "theming"
   | "site_name"
   | "site_description"
-  | "terms_of_service"
   | "account_creation_email_instructions"
   | "help_email"
   | "logo_square"
   | "logo_rectangular"
   | "splash_image"
   | "index_info_html"
-  | "terms_of_service_url"
   | "organization_name"
   | "organization_email"
   | "organization_url"
+  | "terms_of_service"
+  | "terms_of_service_url"
   | "commercial"
+  | "max_trial_projects"
+  | "nonfree_countries"
   | "google_analytics"
   | "kucalc"
   | "dns"
@@ -106,6 +108,8 @@ const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 export const split_iframe_comm_hosts = (hosts) =>
   hosts.match(/[a-z0-9.-]+/g) || [];
 
+const split_strings = (str) => str.match(/[a-zA-Z0-9]+/g) || [];
+
 function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
 }
@@ -149,7 +153,7 @@ export const site_settings_conf: SiteSettings = {
   site_description: {
     name: "Site description",
     desc: "A tagline describing your site.",
-    default: "Collaborative Calculation Online",
+    default: "Collaborative Calculation",
     clearable: true,
     show: show_theming_vars,
   },
@@ -284,10 +288,26 @@ export const site_settings_conf: SiteSettings = {
   commercial: {
     name: "Commercial",
     desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements.",
+      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    show: only_cocalc_com,
+  },
+  max_trial_projects: {
+    name: "Maximum Trial Projects",
+    desc:
+      "Limit where we start blocking trial projects from running in nonfree countries. (0 means disabled)",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+  },
+  nonfree_countries: {
+    name: "Nonfree Countries",
+    desc: "ISO 3166-1 Alpha 2 country codes where extra usage restrictions apply",
+    default: "",
+    to_val: split_strings,
     show: only_cocalc_com,
   },
   onprem_quota_heading: {

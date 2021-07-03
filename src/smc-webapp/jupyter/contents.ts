@@ -8,12 +8,13 @@ Parse the Table of Contents information from the notebook structure.
 */
 
 import { List, Map } from "immutable";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 export interface TableOfContentsInfo {
   id: string;
   level: number;
   value: string;
-  icon: string;
+  icon?: IconName;
   number?: number[];
   align: "center" | "top";
 }
@@ -47,7 +48,7 @@ export function parse_headings(
           id,
           level: last_level + 1,
           value: `Tests for answer ${nbgrader_counter}`,
-          icon: "equals",
+          icon: "aim",
           align: "center",
         });
       } else if (nbgrader.get("task")) {
@@ -86,7 +87,6 @@ export function parse_headings(
         id,
         level,
         value,
-        icon: "minus",
         number: section_counter.slice(0, level),
         align: "top",
       });

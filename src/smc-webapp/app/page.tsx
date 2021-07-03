@@ -27,7 +27,7 @@ import { SiteName } from "../customize";
 import { alert_message } from "../alerts";
 import { Avatar } from "../account/avatar/avatar";
 import { NavTab } from "./nav-tab";
-import { ErrorBoundary, Loading } from "../r_misc";
+import { Loading } from "../r_misc";
 import { ActiveContent } from "./active-content";
 import { FullscreenButton } from "./fullscreen-button";
 import { VersionWarning, CookieWarning, LocalStorageWarning } from "./warnings";
@@ -77,10 +77,13 @@ const PROJECTS_STYLE: React.CSSProperties = {
   padding: "10px 7px",
 } as const;
 
+
+let page_height: string = "100vh";
+
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  height: "100vh",
+  height: page_height, // see note
   width: "100vw",
   overflow: "hidden",
   background: "white",
@@ -382,9 +385,7 @@ export const Page: React.FC = () => {
       )}
       {!fullscreen && <div style={{ minHeight: positionHackHeight }}></div>}
       {fullscreen !== "kiosk" && !is_anonymous && <FullscreenButton />}
-      <ErrorBoundary>
-        <ActiveContent />
-      </ErrorBoundary>
+      <ActiveContent />
     </div>
   );
 };

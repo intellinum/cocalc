@@ -15,7 +15,7 @@ import {
 
 import { Button, Card, Form, Input } from "antd";
 
-import { Icon } from "../../r_misc";
+import { Icon, Space } from "../../r_misc";
 
 import { Result } from "../student-projects/run-in-all-projects";
 
@@ -55,8 +55,8 @@ class TerminalCommandPanel extends Component<Props> {
         onClick={() => this.run_terminal_command()}
         disabled={running}
       >
-        <Icon name={running ? "cc-icon-cocalc-ring" : "play"} spin={running} />{" "}
-        Run
+        <Icon name={running ? "cocalc-ring" : "play"} spin={running} />{" "}
+        <Space /> Run
       </Button>
     );
   }
@@ -74,18 +74,14 @@ class TerminalCommandPanel extends Component<Props> {
             this.run_terminal_command();
           }}
         >
-          <Form.Item>
-            <Input.Group>
-              <Input
-                style={{ width: "80%" }}
-                placeholder="Terminal command..."
-                onChange={(e) => {
-                  this.set_field("input", e.target.value);
-                }}
-              />
-              {this.render_button(running)}
-            </Input.Group>
-          </Form.Item>
+          <Input
+            style={{ width: "80%" }}
+            placeholder="Terminal command..."
+            onChange={(e) => {
+              this.set_field("input", e.target.value);
+            }}
+          />
+          {this.render_button(running)}
         </Form>
       </div>
     );
@@ -103,7 +99,7 @@ class TerminalCommandPanel extends Component<Props> {
             fontWeight: "bold",
           }}
         >
-          <Icon name={"cc-icon-cocalc-ring"} spin /> Running...
+          <Icon name={"cocalc-ring"} spin /> Running...
         </div>
       );
     }

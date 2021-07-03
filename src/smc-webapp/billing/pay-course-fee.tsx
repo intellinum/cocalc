@@ -76,8 +76,8 @@ class PayCourseFee extends Component<Props, State> {
           .getStore("projects")
           .get_total_upgrades_you_have_applied();
         return (
-          (upgrades.member_host ?? 0) - (applied?.member_host ?? 0) > 0 &&
-          (upgrades.network ?? 0) - (applied?.network ?? 0) > 0
+          (upgrades?.member_host ?? 0) - (applied?.member_host ?? 0) > 0 &&
+          (upgrades?.network ?? 0) - (applied?.network ?? 0) > 0
         );
       },
       timeout: 30, // wait up to 30 seconds
@@ -103,7 +103,7 @@ class PayCourseFee extends Component<Props, State> {
     if (this.props.course_pay.has(this.props.project_id)) {
       return (
         <Button bsStyle="primary" disabled={true}>
-          <Icon name="cc-icon-cocalc-ring" spin /> Currently paying the one-time
+          <Icon name="cocalc-ring" spin /> Currently paying the one-time
           ${STUDENT_COURSE_PRICE} fee for this course...
         </Button>
       );

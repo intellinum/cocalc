@@ -12,7 +12,7 @@ import { Assign } from "utility-types";
 import { LabeledRow, Tip, Icon, Space, Loading } from "../../r_misc";
 import { alert_message } from "../../alerts";
 import { ProjectSettings, ProjectStatus } from "./types";
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 const { User } = require("../../users");
 import { webapp_client } from "../../webapp-client";
 const { PROJECT_UPGRADES } = require("smc-util/schema");
@@ -120,7 +120,12 @@ export class QuotaConsole extends React.Component<Props, State> {
       return;
     }
     // if always_running is true, don't show idle timeout row, since not relevant
-    if (name == "mintime" && this.state["always_running"]) return;
+    if (
+      name == "mintime" &&
+      ((this.state["always_running"] && this.state["editing"]) ||
+        this.props.total_project_quotas?.["always_running"])
+    )
+      return;
 
     if (base_value == undefined) {
       base_value = 0;
@@ -263,7 +268,7 @@ export class QuotaConsole extends React.Component<Props, State> {
         return (
           <Row>
             <Col sm={6} smOffset={6}>
-              <ButtonToolbar style={{ float: "right" }}>
+              <ButtonToolbar style={{ float: "right", marginTop: "15px" }}>
                 <Button
                   onClick={this.save_admin_editing.bind(this)}
                   bsStyle="warning"
@@ -285,7 +290,7 @@ export class QuotaConsole extends React.Component<Props, State> {
               <Button
                 onClick={this.start_admin_editing.bind(this)}
                 bsStyle="warning"
-                style={{ float: "right" }}
+                style={{ float: "right", marginTop: "15px" }}
               >
                 <Icon name="pencil" /> Admin Edit...
               </Button>

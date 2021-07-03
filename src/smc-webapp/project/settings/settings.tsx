@@ -48,7 +48,7 @@ export const ProjectSettings = rclass<ReactProps>(
     State
   > {
     private _table;
-    private _admin_project: string;
+    private _admin_project?: string;
 
     public static reduxProps() {
       return {
@@ -78,14 +78,14 @@ export const ProjectSettings = rclass<ReactProps>(
 
     componentWillUnmount() {
       delete this._admin_project;
-      this._table != undefined ? this._table.close() : undefined; // if admin, stop listening for changes
+      this._table?.close(); // stop listening for changes
     }
 
     init_admin_view() {
       // try to load it directly for future use
       this._admin_project = "loading";
       const query = {};
-      for (const k of misc.keys(SCHEMA.projects.user_query.get.fields)) {
+      for (const k of misc.keys(SCHEMA.projects.user_query?.get?.fields)) {
         // Do **not** change the null here to undefined, which means something
         // completely different. See
         // https://github.com/sagemathinc/cocalc/issues/4137

@@ -26,14 +26,10 @@ as a result.
 
 fs     = require('fs')
 {join} = require('path')
-
 {EventEmitter} = require('events')
 
 {callback2, once} = require("smc-util/async-utils");
-
 async   = require('async')
-
-require('coffeescript/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
@@ -427,7 +423,7 @@ class exports.Client extends EventEmitter
                                 cb(err)
                             else if size > opts.maxsize_MB * 1000000
                                 dbg("file is too big!")
-                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB); try opening it in a Terminal with vim instead or write to help@cocalc.com")
+                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request")
                             else
                                 dbg("file is fine")
                                 cb()

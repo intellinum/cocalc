@@ -5,6 +5,7 @@
 
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { Nav, NavItem } from "react-bootstrap";
+import CloseX from "smc-webapp/project/page/close-x";
 
 import { trunc } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
@@ -13,6 +14,7 @@ import { COMPUTE_STATES } from "smc-util/schema";
 import { IS_TOUCH } from "../feature";
 import { set_window_title } from "../browser";
 import {
+  redux,
   React,
   ReactDOM,
   useActions,
@@ -21,6 +23,7 @@ import {
   useRef,
   useState,
   useTypedRedux,
+  CSS,
 } from "../app-framework";
 import { Loading, Icon, Tip } from "../r_misc";
 import { NavTab } from "../app/nav-tab";
@@ -42,6 +45,7 @@ const GHOST_STYLE: React.CSSProperties = {
 const PROJECT_NAME_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   overflow: "hidden",
+  textOverflow: "ellipsis",
 } as const;
 
 const PROJECT_TAB_STYLE: React.CSSProperties = {
@@ -56,6 +60,16 @@ const PROJECT_TAB_STYLE: React.CSSProperties = {
 interface ProjectTabProps {
   index: number;
   project_id: string;
+}
+
+function useProjectStatusAlerts(project_id: string) {
+  const [any_alerts, set_any_alerts] = useState<boolean>(false);
+  const project_status = useTypedRedux({ project_id }, "status");
+  const any = project_status?.get("alerts").size > 0;
+  React.useMemo(() => {
+    set_any_alerts(any);
+  }, [any]);
+  return any_alerts;
 }
 
 const ProjectTab: React.FC<ProjectTabProps> = React.memo(
@@ -77,7 +91,6 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
       );
     });
 
-    const [x_hovered, set_x_hovered] = useState<boolean>(false);
     const actions = useActions("page");
     const active_top_tab = useTypedRedux("page", "active_top_tab");
     const project = useRedux(["projects", "project_map", project_id]);
@@ -87,12 +100,7 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
     );
     const project_websockets = useTypedRedux("projects", "project_websockets");
     const is_anonymous = useTypedRedux("account", "is_anonymous");
-
-    function close_tab(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      actions.close_project_tab(project_id);
-    }
+    const any_alerts = useProjectStatusAlerts(project_id);
 
     function render_websocket_indicator() {
       return (
@@ -108,16 +116,9 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
         return;
       }
       return (
-        <Icon
-          name="times"
-          onClick={close_tab}
-          onMouseOver={() => {
-            set_x_hovered(true);
-          }}
-          onMouseOut={() => {
-            actions.clear_ghost_tabs();
-            set_x_hovered(false);
-          }}
+        <CloseX
+          closeFile={() => actions.close_project_tab(project_id)}
+          clearGhostFileTabs={() => actions.clear_ghost_tabs()}
         />
       );
     }
@@ -135,46 +136,66 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
       set_window_title(title);
     }
 
+    const nav_style: CSS = {
+      ...PROJECT_TAB_STYLE,
+      color:
+        project_id === active_top_tab ? COLORS.TOP_BAR.TEXT_ACTIVE : undefined,
+    };
+
+    const nav_style_inner: CSS = {
+      float: "right",
+      whiteSpace: "nowrap",
+    };
+
+    const project_state = project?.getIn(["state", "state"]);
+
+    const icon =
+      any_alerts && project_state === "running" ? (
+        <Icon name={"exclamation-triangle"} style={{ color: COLORS.BS_RED }} />
+      ) : (
+        <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
+      );
+
+    function click_title(e) {
+      // we intercept a click with a modification key in order to open that project in a new window
+      if (e.ctrlKey || e.shiftKey || e.metaKey) {
+        e.stopPropagation();
+        e.preventDefault();
+        const actions = redux.getProjectActions(project_id);
+        actions.open_file({ path: "", new_browser_window: true });
+      }
+    }
+
+    function render_tip() {
+      return (
+        <>
+          <div>{trunc(project?.get("description") ?? "", 128)}</div>
+          <hr />
+          <div style={{ color: COLORS.GRAY }}>
+            Hint: Shift-Click to open in new window.
+          </div>
+        </>
+      );
+    }
+
     return (
       <SortableNavTab
         ref={tab_ref}
         index={index}
         name={project_id}
         active_top_tab={active_top_tab}
-        style={{
-          ...PROJECT_TAB_STYLE,
-          color:
-            project_id === active_top_tab
-              ? COLORS.TOP_BAR.TEXT_ACTIVE
-              : undefined,
-        }}
+        style={nav_style}
         is_project={true}
       >
-        <div
-          style={{
-            float: "right",
-            whiteSpace: "nowrap",
-            color: x_hovered ? COLORS.TOP_BAR.X_HOVER : COLORS.TOP_BAR.X,
-          }}
-        >
+        <div style={nav_style_inner}>
           {render_websocket_indicator()}
           {render_close_x()}
         </div>
-        <div style={PROJECT_NAME_STYLE}>
-          <Tip
-            title={title}
-            tip={trunc(project?.get("description") ?? "", 128)}
-            placement="bottom"
-            size="small"
-          >
-            <Icon
-              name={
-                COMPUTE_STATES[project?.getIn(["state", "state"])]?.icon ??
-                "bullhorn"
-              }
-            />
+        <div style={PROJECT_NAME_STYLE} onClick={click_title}>
+          <Tip title={title} tip={render_tip()} placement="bottom" size="small">
+            {icon}
             <span style={{ marginLeft: 5, position: "relative" }}>
-              {trunc(title, 24)}
+              {title}
             </span>
           </Tip>
         </div>

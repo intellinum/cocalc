@@ -2,7 +2,9 @@
 Drag'n'Drop file upload area
 */
 
+import "react-dropzone-component/styles/filepicker.css";
 import * as Dropzone from "dropzone";
+Dropzone.autoDiscover = false;
 export { Dropzone };
 import {
   DropzoneComponent,
@@ -15,12 +17,14 @@ import {
   React,
   ReactDOM,
   redux,
+  useTypedRedux,
   useState,
   useRef,
   useEffect,
 } from "./app-framework";
 import { Icon, Tip } from "./r_misc";
 import { join } from "path";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -94,33 +98,20 @@ interface FileUploadProps {
 }
 
 export const FileUpload: React.FC<FileUploadProps> = (props) => {
-  function dropzone_template() {
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
+
+  if (student_project_functionality.disableUploads) {
     return (
-      <div className="dz-preview dz-file-preview">
-        <div className="dz-details">
-          <div className="dz-filename">
-            <span data-dz-name></span>
-          </div>
-          <img data-dz-thumbnail />
-        </div>
-        <div className="dz-progress">
-          <span className="dz-upload" data-dz-uploadprogress></span>
-        </div>
-        <div className="dz-success-mark">
-          <span>
-            <Icon name="check" />
-          </span>
-        </div>
-        <div className="dz-error-mark">
-          <span>
-            <Icon name="times" />
-          </span>
-        </div>
-        <div className="dz-error-message">
-          <span data-dz-errormessage></span>
-        </div>
+      <div>
+        File upload is disabled; if you need this, contact your instructor.
       </div>
     );
+  }
+
+  function dropzone_template() {
+    return <DropzonePreview project_id={props.project_id} />;
   }
 
   function render_close_button() {
@@ -131,7 +122,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
           className="close-button-x"
           style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
         >
-          <i className="fa fa-times"></i>
+          <Icon name={"times"} />
         </span>
       </div>
     );
@@ -177,9 +168,15 @@ interface FileUploadWrapperProps {
   style?: React.CSSProperties; // css styles to apply to the containing div
   dropzone_ref?: DropzoneRef; // gets set to underlying Dropzone instance
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
+  className?: string;
 }
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
+  const disabled =
+    props.disabled || student_project_functionality.disableUploads;
   const [files, set_files] = useState<string[]>([]);
   const preview_ref = useRef(null);
   const zone_ref = useRef(null);
@@ -210,7 +207,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   let queueDestroy: boolean = false;
 
   useEffect(() => {
-    if (!props.disabled) {
+    if (!disabled) {
       create_dropzone();
       set_up_events();
     }
@@ -243,7 +240,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }, []);
 
   useEffect(() => {
-    if (props.disabled) {
+    if (disabled) {
       destroy();
     } else {
       create_dropzone();
@@ -264,32 +261,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       return props.preview_template();
     }
 
-    return (
-      <div className="dz-preview dz-file-preview">
-        <div className="dz-details">
-          <div className="dz-filename">
-            <span data-dz-name></span>
-          </div>
-          <img data-dz-thumbnail />
-        </div>
-        <div className="dz-progress">
-          <span className="dz-upload" data-dz-uploadprogress></span>
-        </div>
-        <div className="dz-success-mark">
-          <span>
-            <Icon name="check" />
-          </span>
-        </div>
-        <div className="dz-error-mark">
-          <span>
-            <Icon name="times" />
-          </span>
-        </div>
-        <div className="dz-error-message">
-          <span data-dz-errormessage></span>
-        </div>
-      </div>
-    );
+    return <DropzonePreview project_id={props.project_id} />;
   }
 
   // If remove_all is true, then all files are also removed
@@ -339,7 +311,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
               marginRight: "20px",
             }}
           >
-            <i className="fa fa-times"></i>
+            <Icon name={"times"} />
           </span>
         </div>
         {<Header />}
@@ -353,11 +325,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }
 
   function create_dropzone(): void {
-    if (
-      dropzone.current == null &&
-      !props.disabled &&
-      zone_ref.current != null
-    ) {
+    if (dropzone.current == null && !disabled && zone_ref.current != null) {
       const dropzone_node = ReactDOM.findDOMNode(zone_ref.current);
       const config = get_djs_config();
       dropzone.current = new Dropzone(dropzone_node, config);
@@ -398,6 +366,14 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       }
     }
 
+    dropzone.current.on("sending", function (file, _xhr, data) {
+      // if file is actually a folder
+      // Thanks to https://stackoverflow.com/questions/28200717/dropzone-js-and-full-path-for-each-file
+      if (file.fullPath) {
+        data.append("fullPath", file.fullPath);
+      }
+    });
+
     dropzone.current.on("addedfile", (file) => {
       if (!file) return;
       set_files(files.concat([file]));
@@ -424,8 +400,8 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }
 
   return (
-    <div style={props.style} ref={zone_ref}>
-      {!props.disabled ? render_preview() : undefined}
+    <div style={props.style} ref={zone_ref} className={props.className}>
+      {!disabled ? render_preview() : undefined}
       {props.children}
     </div>
   );
@@ -435,4 +411,47 @@ FileUploadWrapper.defaultProps = {
   config: {},
   disabled: false,
   show_upload: true,
+};
+
+interface DropzonePreviewProps {
+  project_id: string;
+}
+
+const DropzonePreview: React.FC<DropzonePreviewProps> = ({ project_id }) => {
+  const state = useTypedRedux("projects", "project_map")?.getIn([
+    project_id,
+    "state",
+    "state",
+  ]);
+  return (
+    <div className="dz-preview dz-file-preview">
+      {state != "running" && (
+        <div style={{ background: "red", color: "white", padding: "5px" }}>
+          You must start the project.
+        </div>
+      )}
+      <div className="dz-details">
+        <div className="dz-filename">
+          <span data-dz-name></span>
+        </div>
+        <img data-dz-thumbnail />
+      </div>
+      <div className="dz-progress">
+        <span className="dz-upload" data-dz-uploadprogress></span>
+      </div>
+      <div className="dz-success-mark">
+        <span>
+          <Icon name="check" />
+        </span>
+      </div>
+      <div className="dz-error-mark">
+        <span>
+          <Icon name="times" />
+        </span>
+      </div>
+      <div className="dz-error-message">
+        <span data-dz-errormessage></span>
+      </div>
+    </div>
+  );
 };

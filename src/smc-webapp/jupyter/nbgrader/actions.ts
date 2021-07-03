@@ -12,7 +12,7 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
 import { delay } from "awaiting";
-import { path_split } from "smc-util/misc2";
+import { close, path_split } from "smc-util/misc";
 import { STUDENT_SUBDIR } from "../../course/assignments/actions";
 
 export class NBGraderActions {
@@ -28,7 +28,7 @@ export class NBGraderActions {
   }
 
   public close(): void {
-    delete this.jupyter_actions;
+    close(this);
   }
 
   // Ensure all nbgrader metadata is updated to the latest version we support.
@@ -82,6 +82,16 @@ export class NBGraderActions {
         // based on reading source code and actual ipynb files.
         nbgrader.schema_version = 3;
         // nbgrader schema_version=3 requires that all these are set:
+
+        // We only set "remove" if it is true. This violates the nbgrader schema, so *should*
+        // break processing the ipynb file in nbgrader, which is *good* since instructors
+        // won't silently push out content to students that students are not supposed to see.
+        // We do NOT put nbgrader['remove']=false in explicitly, since no point in
+        // breaking compatibility with official nbgrader if this cell type isn't being used.
+        if (!nbgrader["remove"]) {
+          delete nbgrader["remove"];
+        }
+
         for (const k of ["grade", "locked", "solution", "task"]) {
           if (nbgrader[k] == null) {
             nbgrader[k] = false;
@@ -144,6 +154,7 @@ export class NBGraderActions {
       ],
     });
     if (choice === "Cancel") return;
+    this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later
     await this.assign(target);
   }
 
@@ -201,6 +212,8 @@ export class NBGraderActions {
     this.assign_clear_hidden_tests(); // step 3b
     // log("clear mark regions");
     this.assign_clear_mark_regions(); // step 3c
+    // this is a nonstandard extension to nbgrader in cocalc only.
+    this.assign_delete_remove_cells();
     // log("clear all outputs");
     this.jupyter_actions.clear_all_outputs(false); // step 4
     // log("assign save checksums");
@@ -214,6 +227,9 @@ export class NBGraderActions {
     const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
+      // we keep the "answer" cell of a multiple_choice question as it is
+      if (cell.getIn(["metadata", "nbgrader", "multiple_choice"]) == true)
+        return;
       const cell2 = clear_solution(cell, kernel_language);
       if (cell !== cell2) {
         // set the input
@@ -267,6 +283,20 @@ export class NBGraderActions {
     });
   }
 
+  private assign_delete_remove_cells(): void {
+    const cells: string[] = [];
+    this.jupyter_actions.store.get("cells").forEach((cell) => {
+      if (!cell.getIn(["metadata", "nbgrader", "remove"])) {
+        // we delete cells that have remote true and this one doesn't.
+        return;
+      }
+      // delete the cell
+      cells.push(cell.get("id"));
+    });
+    if (cells.length == 0) return;
+    this.jupyter_actions.delete_cells(cells, false);
+  }
+
   private assign_save_checksums(): void {
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
@@ -304,16 +334,52 @@ export class NBGraderActions {
     // "metadata":{"nbgrader":{"locked":true,...
     //console.log("assign_lock_readonly_cells");
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      if (cell == null || !cell.getIn(["metadata", "nbgrader", "locked"]))
-        return;
-      for (const key of ["editable", "deletable"]) {
+      const nbgrader = cell?.getIn(["metadata", "nbgrader"]);
+      if (!nbgrader) return;
+
+      // We don't allow student to delete *any* cells with any
+      // nbgrader metadata.
+      this.jupyter_actions.set_cell_metadata({
+        id: cell.get("id"),
+        metadata: { deletable: false },
+        merge: true,
+        save: false,
+      });
+
+      if (nbgrader.get("locked")) {
+        // In addition, explicitly *locked* cells also can't be edited:
         this.jupyter_actions.set_cell_metadata({
           id: cell.get("id"),
-          metadata: { [key]: false },
+          metadata: { editable: false },
           merge: true,
           save: false,
         });
       }
     });
+  }
+
+  public ensure_grade_ids_are_unique(): void {
+    const grade_ids = new Set<string>();
+    const cells = this.jupyter_actions.store.get("cells");
+    let changed: boolean = false; // did something change.
+    cells.forEach((cell, id: string): void => {
+      if (cell == null) return;
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      if (nbgrader == null) return;
+      let grade_id = nbgrader.get("grade_id");
+      if (grade_ids.has(grade_id)) {
+        let n = 0;
+        while (grade_ids.has(grade_id + `${n}`)) {
+          n += 1;
+        }
+        grade_id = grade_id + `${n}`;
+        this.set_metadata(id, { grade_id }, false);
+        changed = true;
+      }
+      grade_ids.add(grade_id);
+    });
+    if (changed) {
+      this.jupyter_actions._sync();
+    }
   }
 }

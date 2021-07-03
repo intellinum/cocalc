@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 ###############################################################################
 #
-#    CoCalc: Collaborative Calculation in the Cloud
+#    CoCalc: Collaborative Calculation
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -104,10 +104,11 @@ def cmd(s,
                     stdin=PIPE,
                     stdout=PIPE,
                     stderr=PIPE,
+                    encoding='utf8',
                     shell=not isinstance(s, list))
         x = out.stdout.read() + out.stderr.read()
-        e = out.wait(
-        )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        e = out.wait()
         if e:
             if ignore_errors:
                 return (x + "ERROR").strip()
@@ -145,7 +146,11 @@ def uid(project_id, kubernetes=False):
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
     # 2^29 was the biggest that seemed to work with Docker on my crostini pixelbook, so shrinking to that.
     # This is NOT used in production anymore, so should be fine.
-    n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
+    # 2020-08-04: But it's used for cc-in-cc dev projects, and probably also docker?
+    # adding .encode('utf-8') in order to fix a bug with Ubuntu 20.04's Python 3.8
+    # This works all the way back to Python 2 as well.
+    n = int(hashlib.sha512(project_id.encode('utf-8')).hexdigest()[:8],
+            16)  # up to 2^32
     n //= 8  # up to 2^29  (floor div so will work with python3 too)
     return n if n > 65537 else n + 65537  # 65534 used by linux for user sync, etc.
 
@@ -186,13 +191,13 @@ def thread_map(callable, inputs):
 
 class Project(object):
     def __init__(
-        self,
-        project_id,  # v4 uuid string
-        dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
-        projects=PROJECTS,
-        single=False,
-        kucalc=False,
-        kubernetes=False):
+            self,
+            project_id,  # v4 uuid string
+            dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+            projects=PROJECTS,
+            single=False,
+            kucalc=False,
+            kubernetes=False):
         self._dev = dev
         self._single = single
         self._kucalc = kucalc
@@ -378,16 +383,12 @@ class Project(object):
         if self._dev or self._kubernetes:
             return
         cfs_quota = int(100000 * cores)
+        if os.system("which cgcreate") != 0:
+            # cgroups not installed
+            return
 
         group = "memory,cpu:%s" % self.username
-        try:
-            self.cmd(["cgcreate", "-g", group])
-        except:
-            if os.system("cgcreate") != 0:
-                # cgroups not installed
-                return
-            else:
-                raise
+        self.cmd(["cgcreate", "-g", group])
         if memory:
             memory = quota_to_int(memory)
             open(
@@ -468,9 +469,15 @@ class Project(object):
         os.environ[
             'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                 salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
-        os.environ[
-            'PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(
-                home=os.environ['HOME'])
+        home = os.environ['HOME']
+        if os.path.exists(f"{home}/Library/Python"):
+            # dev mode on macOS
+            os.environ[
+                'PYTHONPATH'] = f"{home}/Library/Python/3.8/lib/python/site-packages"
+        else:
+            # dev mode on Linux
+            os.environ[
+                'PYTHONPATH'] = f"{home}/.local/lib/python3.8/site-packages"
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
@@ -572,8 +579,6 @@ class Project(object):
                     os.environ['COFFEE_CACHE_DIR'] = os.path.join(
                         self.smc_path, 'coffee-cache')
                     # Needed to read code from system-wide installed location.
-                    os.environ[
-                        'NODE_PATH'] = '/cocalc/src/node_modules/smc-util:/cocalc/src/node_modules:/cocalc/src:/cocalc/src/smc-project/node_modules::/cocalc/src/smc-webapp/node_modules'
                     if self._single:
                         # In single-machine mode, everything is on localhost.
                         os.environ['SMC_HOST'] = 'localhost'
@@ -582,7 +587,9 @@ class Project(object):
                         if y in os.environ:
                             del os.environ[y]
                     os.chdir(self.project_path)
-                    self.cmd("smc-start")
+                    self.cmd(
+                        "cocalc-start-project-server > %s/local_hub.log 2>%s/local_hub.err &"
+                        % (self.smc_path, self.smc_path))
                 else:
                     os._exit(0)
             finally:

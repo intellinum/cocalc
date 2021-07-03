@@ -9,8 +9,8 @@
 
 import { webapp_client } from "../webapp-client";
 import * as LS from "../misc/local-storage";
-const { APP_BASE_URL } = require("../misc_page");
-import { SignedIn } from "../../smc-util/message-types";
+import { APP_BASE_URL } from "../misc";
+import { SignedIn } from "smc-util/message-types";
 
 async function tracking_events(): Promise<void> {
   if (localStorage == null) return;

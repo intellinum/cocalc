@@ -9,11 +9,8 @@ import { React, Redux, Rendered, rclass, rtypes } from "../app-framework";
 import { Col, Row } from "../antd-bootstrap";
 import { Icon, Space } from "../r_misc";
 import { SiteDescription, Footer } from "../customize";
-
-const { ComputeEnvironment } = require("../compute_environment");
-
+import { ComputeEnvironment } from "../compute-environment";
 import { COLORS } from "smc-util/theme";
-
 import { SUPPORT_LINKS, CONNECT_LINKS, ABOUT_LINKS } from "./links";
 import { LinkList } from "./link-list";
 import { Usage } from "./usage";
@@ -138,7 +135,7 @@ const InfoPageElement = rclass<{}>(
                 icon="support"
                 links={SUPPORT_LINKS}
               />
-              <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+              <LinkList title="Connect" icon="global" links={CONNECT_LINKS} />
             </Row>
             <Row style={{ marginTop: "20px" }}>
               <ThirdPartySoftware />
@@ -181,7 +178,7 @@ export function render_static_about() {
     <Col>
       <Row>
         <LinkList title="Help & Support" icon="support" links={SUPPORT_LINKS} />
-        <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+        <LinkList title="Connect" icon="global" links={CONNECT_LINKS} />
       </Row>
       <Row style={{ marginTop: "20px" }}>
         <ThirdPartySoftware />
@@ -196,7 +193,7 @@ export const _test = {
     <LinkList title="Help & Support" icon="support" links={SUPPORT_LINKS} />
   ),
   ConnectSection: (
-    <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+    <LinkList title="Connect" icon="global" links={CONNECT_LINKS} />
   ),
   SUPPORT_LINKS,
   CONNECT_LINKS,

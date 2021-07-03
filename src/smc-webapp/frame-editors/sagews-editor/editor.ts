@@ -18,7 +18,8 @@ Maybe
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { set } from "smc-util/misc2";
+import { EditorDescription } from "../frame-tree/types";
+import { set } from "smc-util/misc";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";
@@ -48,14 +49,14 @@ const EDITOR_SPEC = {
     icon: "minus-square",
     component: CellWorksheet,
     buttons: worksheet_buttons,
-  },
+  } as EditorDescription,
   document: {
     short: "Document",
     name: "Document Worksheet",
     icon: "file-alt",
     component: DocumentWorksheet,
     buttons: worksheet_buttons,
-  },
+  } as EditorDescription,
   terminal,
   /*,
   print: {

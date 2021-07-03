@@ -24,13 +24,9 @@
 =enable-user-select
   +user-select(text)
 
-// the common class for the cocalc-icons-font, adjusting fontawesome fa class a little bit
-.cc-icons:before
-  position: relative
-  // top: -2px
-
-@import help
-@import misc_page
+@import codemirror_plugins
+@import bootstrap
+@import idle
 @import console
 @import activity
 @import projects_nav
@@ -97,19 +93,6 @@ div#smc-react-container
   top        : 0px
 
 
-div#cocalc-react-crash
-  z-index: -10
-  position: absolute
-  width: 80vw
-  top: 5vh
-  left: 10vw
-  border: 5px solid  $COL_BS_RED
-  padding: 10px 20px 20px 20px
-  border-radius: 5px
-  font-size: 12pt
-
-div#cocalc-react-crash > div > pre
-  font-size: 11px
 
   /* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
 
@@ -166,6 +149,13 @@ div#cocalc-react-crash > div > pre
 
 .CodeMirror, .CodeMirror-wrap
   line-height : normal
+
+/* This somewhat mostly fixes https://github.com/sagemathinc/cocalc/issues/4663
+   It's not 100% since some non-default themes also change the colors.
+   However #999 is at least *readable* usually. */
+.CodeMirror-linenumber::selection
+  color : #999
+
 
 /* see http://stackoverflow.com/questions/271067/how-can-i-make-a-textarea-100-width-without-overflowing-when-padding-is-present  */
 
@@ -397,9 +387,19 @@ div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
     opacity  : .7
 
 .dropdown-splitbutton-left>div>ul.dropdown-menu
-  right: 0;
-  left: auto;
-  padding-left: 1px;
-  padding-right: 1px;
+  right: 0
+  left: auto
+  padding-left: 1px
+  padding-right: 1px
 
 @import antd_fix
+
+// Fix issue https://github.com/sagemathinc/cocalc/issues/4568
+blockquote
+  font-size: inherit
+blockquote p
+  font-size: inherit
+
+.cc-help-stats-table
+  th, td
+    text-align     : right

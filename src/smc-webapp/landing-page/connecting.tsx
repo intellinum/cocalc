@@ -4,8 +4,8 @@
  */
 
 import { React } from "../app-framework";
-
-import { COLORS, Icon } from "../r_misc";
+import { Icon } from "../r_misc";
+import { COLORS } from "smc-util/theme";
 
 export function Connecting(_props) {
   return (
@@ -17,7 +17,7 @@ export function Connecting(_props) {
         color: COLORS.GRAY,
       }}
     >
-      <Icon name="cc-icon-cocalc-ring" spin />{" "}
+      <Icon name="cocalc-ring" spin />{" "}
       Connecting...
     </div>
   );

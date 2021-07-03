@@ -50,8 +50,9 @@ misc                 = require('smc-util/misc')
 {webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
-misc_page            = require('./misc_page')
 {JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
+{cm_define_diffApply_extension} = require('./codemirror/extensions')
+{ sanitize_nbconvert_path } = require("smc-util/sanitize-nbconvert")
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -142,6 +143,7 @@ underscore = require('underscore')
 class JupyterWrapper extends EventEmitter
     constructor: (element, server_url, filename, read_only, project_id, timeout, cb) ->
         super()
+        @register_editor_history()
         @element = element
         @server_url = server_url
         @filename = filename
@@ -223,6 +225,15 @@ class JupyterWrapper extends EventEmitter
     dbg: (f) =>
         return (m) -> webapp_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
 
+    register_editor_history: =>
+        # in case the user clicks the TimeTravel button, we register the
+        # ancient history editor
+        require.ensure [], () =>
+            {register} = require("./editor")
+            {HistoryEditor} = require('./editor_history')
+            register(false, HistoryEditor, ['sage-history'])
+
+
     # Position the iframe to exactly match the underlying element; I'm calling this
     # "refresh" since that's the name of the similar method for CodeMirror.
     refresh: =>
@@ -248,7 +259,11 @@ class JupyterWrapper extends EventEmitter
     # save notebook file from DOM to disk
     save: (cb) =>
         # could be called when notebook is being initialized before nb is defined.
-        @nb?.save_notebook(false).then(cb)
+        try
+            await @nb?.save_notebook(false)
+            cb()
+        catch err
+            cb(err)
 
     disable_autosave: () =>
         # We have our own auto-save system
@@ -262,8 +277,7 @@ class JupyterWrapper extends EventEmitter
             # get in a state where @frame is defined, but window is not.
             return
         @_already_monkey_patched = true
-        misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
-        misc_page.cm_define_testbot(@frame.CodeMirror)
+        cm_define_diffApply_extension(@frame.CodeMirror)
         @monkey_patch_logo()
         if @read_only
             @monkey_patch_read_only()
@@ -574,7 +588,7 @@ class JupyterWrapper extends EventEmitter
             index = loc.i # cell index
             data  = x[i]
             name  = misc.trunc(@_users.get_first_name(account_id), 10)
-            color = @_users.get_color(account_id)
+            color = @_users.get_color_sync(account_id)
             if not data?
                 cursor = templates.find(".smc-jupyter-cursor").clone().show()
                 cursor.css({'z-index':5})
@@ -872,6 +886,7 @@ class JupyterNotebook extends EventEmitter
         async.parallel [@init_syncstring, @init_dom, @ipynb_timestamp], (err) =>
             @element.find(".smc-jupyter-startup-message").hide()
             @element.find(".smc-jupyter-notebook-buttons").show()
+            @element.processIcons()
 
             if not err and not @dom?.nb?
                 # I read through all code and there is "no possible way" this can
@@ -913,7 +928,6 @@ class JupyterNotebook extends EventEmitter
                         @syncstring.live(live)
                         @syncstring.sync()
             @emit(@state)
-            @show()
             cb?(err)
 
     init_syncstring: (cb) =>
@@ -1128,10 +1142,6 @@ class JupyterNotebook extends EventEmitter
             # There are other algorithms that involve electing leaders or some other
             # consensus protocol, to decide who fixes issues, but they would all but
             # much more complicated and brittle.
-            # For testing, I do
-            #    smc.editors['tmp/break.ipynb'].wrapped.testbot({n:60})
-            # in a console on at least one open notebook, then open tmp/.break.ipynb.jupyter-sync
-            # directly and corrupt it in all kinds of ways.
             if not @_parse_errors
                 @_handle_dom_change(true)
 
@@ -1156,6 +1166,8 @@ class JupyterNotebook extends EventEmitter
         return @syncstring._syncstring.last_changed() - 0
 
     show: =>
+        # This should ONLY be called externally from
+        # ./project_actions.ts!
         @element.show()
         @dom?.refresh()
 
@@ -1216,7 +1228,7 @@ class JupyterNotebook extends EventEmitter
         return false
 
     show_history_viewer: () =>
-        path = misc.history_path(@filename, true)
+        path = misc.hidden_meta_file(@filename, "sage-history")
         #@dbg("show_history_viewer")(path)
         redux.getProjectActions(@project_id).open_file
             path       : path
@@ -1239,15 +1251,22 @@ class JupyterNotebook extends EventEmitter
         else
             @save_button.addClass('disabled')
 
+    save_syncstring: (cb) =>
+        try
+            await @syncstring.save()
+            cb()
+        catch err
+            cb(err)
+
     save: (cb) =>
         if @state != 'ready' or not @save_button?  # save button isn't defined when document is readonly.
             cb?()
             return
         @save_button.icon_spin(start:true, delay:5000)
-        async.parallel [@dom.save, @syncstring.save], (err) =>
+        async.parallel [@dom.save, @save_syncstring], (err) =>
+            @save_button.icon_spin(false)
             if @state != 'ready'
                 return
-            @save_button.icon_spin(false)
             @update_save_state()
             cb?(err)
 
@@ -1262,7 +1281,7 @@ class JupyterNotebook extends EventEmitter
             path        : @path
             project_id  : @project_id
             command     : 'jupyter'
-            args        : ['nbconvert', @file, "--to=#{opts.format}"]
+            args        : ['nbconvert', sanitize_nbconvert_path(@file), "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30
@@ -1366,31 +1385,6 @@ class JupyterNotebook extends EventEmitter
         if @state != 'ready'
             return
         @syncstring.exit_undo_mode()
-
-    ###
-    Used for testing.  Call this to have a "robot" count from 1 up to n
-    in the given cell.   Will call sync after adding each number.   The
-    test to do is to have several of these running at once and make
-    sure all numbers are entered.  Also, try typing while this is running.
-    Use like this:
-            smc.editors['tmp/bot.ipynb'].wrapped.testbot()
-    A good way to test is to start one of these running on one machine,
-    then just try to use the same notebook on another machine.  The
-    constant arrivable and merging in of new content will properly stress
-    the system.
-    ###
-    testbot: (opts) =>
-        opts = defaults opts,
-            n     : 30
-            delay : 1000
-            index : @dom?.nb?.get_selected_index() ? 0
-        cell = @dom?.nb?.get_cell(opts.index)
-        if not cell?
-            console.warn("no available cell to test")
-        cell.code_mirror.testbot
-            n     : opts.n
-            delay : opts.delay
-            f     : @_handle_dom_change
 
 get_timestamp = (opts) ->
     opts = defaults opts,

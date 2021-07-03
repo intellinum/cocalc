@@ -1,14 +1,26 @@
-import { ErrorBoundary } from "../r_misc";
-import { React, ReactDOM, Redux } from "../app-framework";
-import { Page } from "./page";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-export function render(): void {
+import { React, ReactDOM, Redux } from "../app-framework";
+
+export async function render(): Promise<void> {
+  finishedLoading();  // comment this out to leave the loading/sartup banner visible
+  const { Page } = await import("./page");
   ReactDOM.render(
     <Redux>
-      <ErrorBoundary>
-        <Page />
-      </ErrorBoundary>
+      <Page />
     </Redux>,
-    document.getElementById("smc-react-container")
+    document.getElementById("cocalc-webapp-container")
   );
+}
+
+// When loading is done, remove any visible artifacts.
+// This doesn't remove anything added to the head.
+function finishedLoading() {
+  const load = document.getElementById("cocalc-load-container");
+  if (load != null) {
+    load.innerHTML = "";
+  }
 }

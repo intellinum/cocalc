@@ -3,8 +3,6 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-require('coffee2-cache')
-
 # compute-server -- runs on the compute nodes; is also imported as a module
 
 CONF = '/projects/conf'
@@ -70,9 +68,13 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
+    env = undefined
     if DEV
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         os_path = require('path')
+        # 2021: we have to be explicit to smc_compute where it's modules are now.
+        # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
+        env = {PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
         command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
         PROJECT_PATH = conf.project_path()
         v = ['--dev', "--projects", PROJECT_PATH]
@@ -95,6 +97,7 @@ smc_compute = (opts) =>
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
+        env     : env
         cb      : (err, output) =>
             #winston.debug(misc.to_safe_str(output))
             winston.debug("smc_compute: finished running #{opts.args.join(' ')} -- #{err}")
@@ -445,7 +448,7 @@ class Project
                             if err
                                 cb(err)
                             else
-                                resp.assigned = result[0].assigned
+                                resp.assigned = result[0]?.assigned
                                 cb()
                 else
                     cb()
@@ -874,6 +877,9 @@ kill_idle_projects = (cb) ->
     )
 
 init_mintime = (cb) ->
+    if process.env.COCALC_PERSONAL == 'yes'
+       cb()
+       return
     setInterval(kill_idle_projects, 3*60*1000)
     kill_idle_projects(cb)
 
@@ -1301,6 +1307,7 @@ try
         .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
         .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
         .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
+        .option('--foreground',              'if specified, do not run as a deamon')
         .option('--kubernetes',              'if given, assumes running in cocalc-kubernetes, so projects are stored at /projects/home are NFS exported via a service called cocalc-kubernetes-server-nfs; projects run as pods in the cluster.  This is all taken care of by the smc-compute script, which gets the --kubernetes option.')
         .parse(process.argv)
 catch e
@@ -1332,8 +1339,13 @@ main = () ->
                 if err
                     winston.debug("WARNING: something went wrong fixing configuration directory permissions", err)
 
-    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
-    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
+    if program.foreground
+        start_server (err) ->
+            if err
+                process.exit(1)
+    else
+        daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
+        daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
-if program._name.split('.')[0] == 'compute'
+if program._name.split('.')[0] == 'cocalc-compute-server'
     main()

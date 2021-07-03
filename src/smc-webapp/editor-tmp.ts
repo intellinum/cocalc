@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "smc-util/misc";
+import { filename_extension_notilde, path_split } from "smc-util/misc";
 import { file_associations } from "./file-associations";
 import { icon as file_icon } from "./file-editors";
 
 // Given a text file (defined by content), try to guess
 // what the extension should be.
-const guess_file_extension_type = function (content) {
+function guess_file_extension_type(content: string): string {
   content = $.trim(content);
   const i = content.indexOf("\n");
   const first_line = content.slice(0, i).toLowerCase();
@@ -21,6 +21,9 @@ const guess_file_extension_type = function (content) {
     if (first_line.indexOf("bash") !== -1 || first_line.indexOf("sh") !== -1) {
       return "sh";
     }
+    if (first_line.indexOf("node") !== -1) {
+      return "js";
+    }
   }
   if (first_line.indexOf("html") !== -1) {
     return "html";
@@ -29,21 +32,18 @@ const guess_file_extension_type = function (content) {
     // kind of a stretch
     return "c++";
   }
-  return undefined;
-};
+  return "";
+}
 
-export function file_options(filename:string, content?: string) {
+export function file_options(filename: string, content?: string) {
   let x;
-  let ext = misc.filename_extension_notilde(filename);
-  if (ext != undefined) {
-    ext = ext.toLowerCase();
-  }
-  if (ext == null && content != null) {
+  let ext = filename_extension_notilde(filename).toLowerCase();
+  if (ext == "" && content != null) {
     // no recognized extension, but have contents
     ext = guess_file_extension_type(content);
   }
-  if (ext === "") {
-    x = file_associations[`noext-${misc.path_split(filename).tail}`];
+  if (ext == "") {
+    x = file_associations[`noext-${path_split(filename).tail.toLowerCase()}`];
   } else {
     x = file_associations[ext];
   }
@@ -54,12 +54,11 @@ export function file_options(filename:string, content?: string) {
     delete x.icon;
   }
   if (x.icon == null) {
-    // Use the new react editor icons first, if they exist...
     const icon = file_icon(ext);
     if (icon != null) {
-      x.icon = "fa-" + icon;
+      x.icon = icon;
     } else {
-      x.icon = "fa-file-code-o";
+      x.icon = "question-circle";
     }
   }
   return x;

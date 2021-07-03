@@ -184,7 +184,7 @@ export const BillingPage = rclass<ReactProps>(
           // subscriptions but they deleted their card.
           return (
             <span>
-              Click "Add Payment Method..." to add a credit card so you can
+              Click "Add payment method..." to add a credit card so you can
               purchase or renew your subscriptions. Without a credit card any
               current subscriptions will run to completion, but will not renew.
               If you have any questions about subscriptions or billing (e.g.,
@@ -247,7 +247,7 @@ export const BillingPage = rclass<ReactProps>(
     private render_panel_header(icon, header): Rendered {
       return (
         <div style={{ cursor: "pointer" }}>
-          <Icon name={icon} fixedWidth /> {header}
+          <Icon name={icon} style={{ width: "1.125em" }} /> {header}
         </div>
       );
     }
@@ -289,16 +289,8 @@ export const BillingPage = rclass<ReactProps>(
         return (
           <div>
             <PaymentMethods
-              sources={
-                this.props.customer != null
-                  ? this.props.customer.sources
-                  : undefined
-              }
-              default={
-                this.props.customer != null
-                  ? this.props.customer.default_source
-                  : undefined
-              }
+              sources={this.props.customer?.sources}
+              default={this.props.customer?.default_source}
             />
             <AddSubscription
               hide_cancel_button={true}
