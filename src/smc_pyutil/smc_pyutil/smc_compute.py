@@ -646,7 +646,7 @@ metadata:
 spec:
   containers:
     - name: "{pod_name}"
-      image: "{registry}/cocalc-kubernetes-project:1.0.1.2"
+      image: "{registry}/cocalc-kubernetes-project:1.1"
       env:
         - name: COCALC_PROJECT_ID
           value: "{project_id}"
