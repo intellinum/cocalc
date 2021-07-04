@@ -99,6 +99,8 @@ def ci(args):
     v = packages(args)
     # First do npm ci not in parallel (which doesn't work with workspaces):
     for path in v:
+        cmd("mv package-lock.json package-lock.json.bk", path)
+        cmd("npm install --package-lock", path)
         cmd("npm ci", path)
 
 
